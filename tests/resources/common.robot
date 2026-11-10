@@ -31,6 +31,12 @@ Setup Child Device
     Setup Device
     Set Child Device1
 
+Setup Service
+    [Documentation]    Create the stack and set the device context to the
+    ...    auto-registered Modbus service (tedge-modbus-plugin).
+    Setup Device
+    Set Main Service
+
 Bootstrap Device
     [Arguments]    ${device_id}
     ${domain}=    Cumulocity.Get Domain
@@ -57,6 +63,9 @@ Set Main Device
 
 Set Child Device1
     Cumulocity.External Identity Should Exist    ${DEVICE_ID}:device:TestCase1
+
+Set Main Service
+    Cumulocity.External Identity Should Exist    ${DEVICE_ID}:device:main:service:tedge-modbus-plugin
 
 Collect Logs
     Run Keyword And Continue On Failure    Get Workflow Logs

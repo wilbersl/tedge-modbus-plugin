@@ -9,6 +9,7 @@ import sched
 import sys
 import threading
 import time
+import signal
 
 import tomli
 from paho.mqtt import client as mqtt_client
@@ -54,6 +55,7 @@ class ModbusPoll:
     config_dir = "."
 
     def __init__(self, config_dir=".", logfile=None):
+        signal.signal(signal.SIGTERM, self._handle_sigterm)
         self.config_dir = config_dir
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
@@ -517,6 +519,14 @@ class ModbusPoll:
     def _handle_subscribed_message(self, topic, payload):
         """Handle messages received from subscribed topics"""
         self.logger.debug("Handling message from topic %s: %s", topic, payload)
+        
+        if topic == "te/device/main/service/tedge-modbus-plugin/cmd/health/check":
+            topic = "te/device/main/service/tedge-modbus-plugin/status/health"
+            data = {"status":"up"}
+            self.send_tedge_message(
+                MappedMessage(json.dumps(data), topic), retain=True, qos=1
+            )
+            return
 
         try:
             payload_data = json.loads(payload)
@@ -586,13 +596,6 @@ class ModbusPoll:
                 self.send_tedge_message(
                     MappedMessage(json.dumps(payload_data), topic), retain=True, qos=1
                 )
-
-        elif "///cmd/health/check" in topic:
-            topic = "te/device/main/service/tedge-modbus-plugin/status/health"
-            data = {"status":"up"}
-            self.send_tedge_message(
-                MappedMessage(json.dumps(data), topic), retain=True, qos=1
-            )
 
         # Add more topic-specific handlers as needed
         else:
@@ -727,6 +730,7 @@ class ModbusPoll:
     def _handle_sigterm(self, sig, frame):
         self.logger.warning('SIGTERM received...')
         self.stop()
+        sys.exit(0)
 
     def stop(self):
         """Stop the service"""
@@ -736,6 +740,7 @@ class ModbusPoll:
         self.send_tedge_message(
             MappedMessage(json.dumps(data), topic), retain=True, qos=1
         )
+        time.sleep(5)
 
 
 
