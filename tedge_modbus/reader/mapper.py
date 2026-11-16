@@ -308,15 +308,14 @@ class ModbusMapper:
         """Buffer register"""
         buf = 0x00
 
-        if is_little_word_endian:
-            for reg in reversed(register):
-                buf = (
-                    (buf << 16) | reg if not little_endian else (reg >> 8) | (reg << 8)
-                )
-        else:
-            for reg in register:
-                buf = (
-                    (buf << 16) | reg if not little_endian else (reg >> 8) | (reg << 8)
-                )
+        registers = reversed(register) if is_little_word_endian else register
+
+        for reg in registers:
+            reg &= 0xFFFF
+
+            if little_endian:
+                reg = ((reg & 0xFF) << 8) | ((reg >> 8) & 0xFF)
+
+            buf = (buf << 16) | reg
 
         return buf

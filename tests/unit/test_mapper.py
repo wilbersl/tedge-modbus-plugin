@@ -727,3 +727,64 @@ class TestMapperOnChange(unittest.TestCase):
         )
         topics4 = [message.topic for message in messages4]
         self.assertTrue("local/device/test_device///m/" in topics4)
+
+    def test_buffer_register_endianness(self):
+        registers = [0x1234, 0x5678]
+
+        test_cases = [
+            # little_endian, little_word_endian, expected
+            (False, False, 0x12345678),
+            (True,  False, 0x34127856),
+            (False, True,  0x56781234),
+            (True,  True,  0x78563412),
+        ]
+
+        for little_endian, little_word_endian, expected in test_cases:
+            with self.subTest(
+                little_endian=little_endian,
+                little_word_endian=little_word_endian,
+            ):
+                result = ModbusMapper.buffer_register(
+                    register=registers,
+                    little_endian=little_endian,
+                    is_little_word_endian=little_word_endian,
+                )
+
+                self.assertEqual(
+                    result,
+                    expected,
+                    (
+                        f"Expected {expected:#010x}, got {result:#010x} "
+                        f"for little_endian={little_endian}, "
+                        f"is_little_word_endian={little_word_endian}"
+                    ),
+                )
+                
+    def test_buffer_register_single_register(self):
+        result = ModbusMapper.buffer_register(
+            register=[0x1234],
+            little_endian=False,
+            is_little_word_endian=False,
+        )
+
+        self.assertEqual(result, 0x1234)
+
+
+    def test_buffer_register_single_register_byte_swapped(self):
+        result = ModbusMapper.buffer_register(
+            register=[0x1234],
+            little_endian=True,
+            is_little_word_endian=False,
+        )
+
+        self.assertEqual(result, 0x3412)
+
+
+    def test_buffer_register_empty_register_list(self):
+        result = ModbusMapper.buffer_register(
+            register=[],
+            little_endian=False,
+            is_little_word_endian=False,
+        )
+
+        self.assertEqual(result, 0)
